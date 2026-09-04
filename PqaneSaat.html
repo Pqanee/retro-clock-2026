@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retro Clock</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --main: #ffffff;
+      --glow: #ffffff;
+      --glow2: #dddddd;
+      --dark-glow: #888888;
+      --date: #eeeeee;
+      --bg-top: #202020;
+      --glow-alpha: rgb(255 255 255 / 0.16);
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      font-family: "Share Tech Mono", monospace;
+
+      background:
+              radial-gradient(
+                      circle at top,
+                      var(--bg-top) 0%,
+                      #09120b 50%,
+                      #020202 100%
+              );
+
+      color: var(--main);
+      position: relative;
+
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+
+    /* ARKA PLAN GLOW */
+
+    body::before {
+      content: "";
+
+      position: absolute;
+
+      width: 1000px;
+      height: 1000px;
+
+      background:
+              radial-gradient(
+                      circle,
+                      var(--glow-alpha) 0%,
+                      transparent 70%
+              );
+
+      filter: blur(120px);
+
+      animation: pulse 5s infinite ease-in-out;
+
+      pointer-events: none;
+
+      transition: background 0.5s ease;
+    }
+
+    /* SCANLINES */
+
+    body::after {
+      content: "";
+
+      position: absolute;
+      inset: 0;
+
+      background:
+              repeating-linear-gradient(
+                      transparent 0px,
+                      transparent 3px,
+                      rgba(0, 255, 120, 0.03) 4px
+              );
+
+      pointer-events: none;
+    }
+
+    /* ÜST PANEL */
+
+    .top-panel {
+      position: absolute;
+
+      top: 30px;
+      right: 30px;
+
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      z-index: 20;
+    }
+
+    /* RENK PANELİ */
+
+    .color-picker {
+      display: flex;
+      gap: 12px;
+
+      padding: 10px 14px;
+
+      border-radius: 30px;
+
+      background: rgba(0, 0, 0, 0.35);
+
+      backdrop-filter: blur(10px);
+
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* RENKLER */
+
+    .color {
+      width: 22px;
+      height: 22px;
+
+      border-radius: 50%;
+
+      cursor: pointer;
+
+      border: 2px solid rgba(255, 255, 255, 0.25);
+
+      transition:
+              transform 0.2s ease,
+              box-shadow 0.2s ease,
+              border 0.2s ease;
+    }
+
+    .color:hover {
+      transform: scale(1.2);
+    }
+
+    .color.active {
+      transform: scale(1.15);
+
+      border: 2px solid white;
+
+      box-shadow:
+              0 0 8px currentColor,
+              0 0 18px currentColor;
+    }
+
+    .red {
+      background: #ff3535;
+      color: #ff3535;
+    }
+
+    .pink {
+      background: #ff4f91;
+      color: #ff4f91;
+    }
+
+    .purple {
+      background: #a855f7;
+      color: #a855f7;
+    }
+
+    .blue {
+      background: #38bdf8;
+      color: #38bdf8;
+    }
+
+    .white {
+      background: #ffffff;
+      color: #ffffff;
+    }
+
+    /* MOD BUTONU */
+
+    .mode-button {
+      padding: 11px 16px;
+
+      border-radius: 25px;
+
+      border: 1px solid rgba(255, 255, 255, 0.15);
+
+      background: rgba(0, 0, 0, 0.35);
+
+      color: var(--main);
+
+      font-family: "Share Tech Mono", monospace;
+
+      font-size: 14px;
+      letter-spacing: 1px;
+
+      cursor: pointer;
+
+      backdrop-filter: blur(10px);
+
+      transition: 0.3s ease;
+    }
+
+    .mode-button:hover {
+      transform: translateY(-2px);
+
+      border-color: var(--main);
+
+      box-shadow:
+              0 0 10px var(--glow),
+              0 0 20px var(--glow2);
+    }
+
+    /* ANA KONTEYNER */
+
+    .container {
+      position: relative;
+      text-align: center;
+      z-index: 5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* SAAT */
+
+    #clock {
+      font-size: 12vw;
+      letter-spacing: 10px;
+
+      color: var(--main);
+
+      text-shadow:
+              0 0 8px var(--glow),
+              0 0 18px var(--glow2),
+              0 0 40px var(--glow2),
+              0 0 80px var(--dark-glow),
+              0 0 140px var(--glow);
+
+      animation:
+              flicker 0.18s infinite alternate,
+              pulseText 3s infinite ease-in-out;
+
+      transition:
+              color 0.5s ease,
+              text-shadow 0.5s ease;
+    }
+
+    /* TARİH */
+
+    #date {
+      margin-top: 30px;
+
+      font-size: 1.5rem;
+      letter-spacing: 4px;
+
+      color: var(--date);
+
+      text-shadow:
+              0 0 15px var(--glow);
+    }
+
+    /* KONUM */
+
+    #location {
+      margin-top: 12px;
+
+      font-size: 1rem;
+      opacity: 0.7;
+      letter-spacing: 3px;
+    }
+
+    /* KRONOMETRE */
+
+    #stopwatch {
+      font-size: 10vw;
+      letter-spacing: 8px;
+
+      color: var(--main);
+
+      text-shadow:
+              0 0 8px var(--glow),
+              0 0 18px var(--glow2),
+              0 0 40px var(--glow2),
+              0 0 80px var(--dark-glow),
+              0 0 140px var(--glow);
+
+      animation: pulseText 3s infinite ease-in-out;
+    }
+
+    /* KRONOMETRE BUTONLARI */
+
+    .stopwatch-controls {
+      display: flex;
+      justify-content: center;
+
+      gap: 15px;
+      margin-top: 35px;
+    }
+
+    .stopwatch-button {
+      padding: 12px 24px;
+
+      border-radius: 8px;
+
+      border: 1px solid var(--main);
+
+      background: rgba(0, 0, 0, 0.35);
+
+      color: var(--main);
+
+      font-family: "Share Tech Mono", monospace;
+
+      font-size: 16px;
+      letter-spacing: 2px;
+
+      cursor: pointer;
+
+      backdrop-filter: blur(8px);
+
+      transition: 0.25s ease;
+    }
+
+    .stopwatch-button:hover {
+      transform: translateY(-2px);
+
+      background: var(--glow-alpha);
+
+      box-shadow:
+              0 0 12px var(--glow),
+              0 0 25px var(--glow2);
+    }
+
+    .stopwatch-button:active {
+      transform: scale(0.95);
+    }
+
+    /* ANİMASYONLAR */
+
+    @keyframes flicker {
+      0% { opacity: 1; }
+      10% { opacity: 0.98; }
+      20% { opacity: 0.94; }
+      30% { opacity: 1; }
+      40% { opacity: 0.97; }
+      50% { opacity: 1; }
+      60% { opacity: 0.96; }
+      70% { opacity: 1; }
+      80% { opacity: 0.98; }
+      90% { opacity: 0.95; }
+      100% { opacity: 1; }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.5;
+      }
+
+      50% {
+        transform: scale(1.08);
+        opacity: 0.8;
+      }
+    }
+
+    @keyframes pulseText {
+      0%, 100% {
+        filter: brightness(1);
+      }
+
+      50% {
+        filter: brightness(1.35);
+      }
+    }
+
+    /* MOBİL */
+
+    @media (max-width: 900px) {
+
+      #clock {
+        font-size: 22vw;
+        letter-spacing: 2px;
+      }
+
+      #stopwatch {
+        font-size: 18vw;
+        letter-spacing: 2px;
+      }
+
+      #date {
+        font-size: 18px;
+      }
+
+      .top-panel {
+        top: 20px;
+        right: 20px;
+
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .stopwatch-controls {
+        gap: 8px;
+      }
+
+      .stopwatch-button {
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="top-panel">
+
+  <div class="color-picker">
+
+    <div class="color red"
+         onclick="renkDegistir('red')"
+         title="Kırmızı"></div>
+
+    <div class="color pink"
+         onclick="renkDegistir('pink')"
+         title="Pembe"></div>
+
+    <div class="color purple"
+         onclick="renkDegistir('purple')"
+         title="Mor"></div>
+
+    <div class="color blue"
+         onclick="renkDegistir('blue')"
+         title="Mavi"></div>
+
+    <div class="color white active"
+         onclick="renkDegistir('white')"
+         title="Beyaz"></div>
+
+  </div>
+
+  <button class="mode-button"
+          id="modeButton"
+          onclick="modDegistir()">
+    ⏱ KRONOMETRE
+  </button>
+
+</div>
+
+
+<div class="container">
+
+  <!-- SAAT -->
+
+  <div id="clockScreen">
+
+    <div id="clock">
+      00:00:00
+    </div>
+
+    <div id="date">
+      Tarih yükleniyor...
+    </div>
+
+    <div id="location">
+      İSTANBUL • UTC +3
+    </div>
+
+  </div>
+
+
+  <!-- KRONOMETRE -->
+
+  <div id="stopwatchScreen" class="hidden">
+
+    <div id="stopwatch">
+      00:00:00.00
+    </div>
+
+    <div class="stopwatch-controls">
+
+      <button class="stopwatch-button"
+              onclick="kronometreBaslat()">
+        BAŞLAT
+      </button>
+
+      <button class="stopwatch-button"
+              onclick="kronometreDurdur()">
+        DURDUR
+      </button>
+
+      <button class="stopwatch-button"
+              onclick="kronometreSifirla()">
+        SIFIRLA
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+  const gunler = [
+    "Pazar",
+    "Pazartesi",
+    "Salı",
+    "Çarşamba",
+    "Perşembe",
+    "Cuma",
+    "Cumartesi"
+  ];
+
+  const aylar = [
+    "Ocak",
+    "Şubat",
+    "Mart",
+    "Nisan",
+    "Mayıs",
+    "Haziran",
+    "Temmuz",
+    "Ağustos",
+    "Eylül",
+    "Ekim",
+    "Kasım",
+    "Aralık"
+  ];
+
+  const saat = document.getElementById("clock");
+  const tarih = document.getElementById("date");
+
+  const clockScreen =
+          document.getElementById("clockScreen");
+
+  const stopwatchScreen =
+          document.getElementById("stopwatchScreen");
+
+  const modeButton =
+          document.getElementById("modeButton");
+
+  const stopwatchDisplay =
+          document.getElementById("stopwatch");
+
+
+  /* SAAT */
+
+  function guncelle() {
+
+    const now = new Date();
+
+    const h = String(now.getHours()).padStart(2, "0");
+    const m = String(now.getMinutes()).padStart(2, "0");
+    const s = String(now.getSeconds()).padStart(2, "0");
+
+    const opacity = s % 2 ? 1 : 0.35;
+
+    saat.innerHTML =
+            `${h}<span style="opacity:${opacity}">:</span>${m}<span style="opacity:${opacity}">:</span>${s}`;
+
+    tarih.innerHTML =
+            `${gunler[now.getDay()]} • ${now.getDate()} ${aylar[now.getMonth()]} ${now.getFullYear()}`;
+  }
+
+
+  /* MOD DEĞİŞTİR */
+
+  let kronometreModu = false;
+
+  function modDegistir() {
+
+    kronometreModu = !kronometreModu;
+
+    if (kronometreModu) {
+
+      clockScreen.classList.add("hidden");
+      stopwatchScreen.classList.remove("hidden");
+
+      modeButton.innerHTML = "🕐 SAAT";
+
+    } else {
+
+      stopwatchScreen.classList.add("hidden");
+      clockScreen.classList.remove("hidden");
+
+      modeButton.innerHTML = "⏱ KRONOMETRE";
+    }
+  }
+
+
+  /* KRONOMETRE */
+
+  let stopwatchInterval = null;
+  let stopwatchRunning = false;
+  let stopwatchStartTime = 0;
+  let stopwatchElapsed = 0;
+
+
+  function kronometreBaslat() {
+
+    if (stopwatchRunning) return;
+
+    stopwatchRunning = true;
+
+    stopwatchStartTime =
+            Date.now() - stopwatchElapsed;
+
+    stopwatchInterval =
+            setInterval(kronometreGuncelle, 10);
+  }
+
+
+  function kronometreDurdur() {
+
+    if (!stopwatchRunning) return;
+
+    stopwatchRunning = false;
+
+    clearInterval(stopwatchInterval);
+
+    stopwatchElapsed =
+            Date.now() - stopwatchStartTime;
+
+    kronometreGuncelle();
+  }
+
+
+  function kronometreSifirla() {
+
+    stopwatchRunning = false;
+
+    clearInterval(stopwatchInterval);
+
+    stopwatchElapsed = 0;
+    stopwatchStartTime = 0;
+
+    stopwatchDisplay.innerHTML =
+            "00:00:00.00";
+  }
+
+
+  function kronometreGuncelle() {
+
+    if (!stopwatchRunning) return;
+
+    stopwatchElapsed =
+            Date.now() - stopwatchStartTime;
+
+    const ms = stopwatchElapsed;
+
+    const hours =
+            Math.floor(ms / 3600000);
+
+    const minutes =
+            Math.floor((ms % 3600000) / 60000);
+
+    const seconds =
+            Math.floor((ms % 60000) / 1000);
+
+    const milliseconds =
+            Math.floor((ms % 1000) / 10);
+
+    stopwatchDisplay.innerHTML =
+            `${String(hours).padStart(2, "0")}:` +
+            `${String(minutes).padStart(2, "0")}:` +
+            `${String(seconds).padStart(2, "0")}.` +
+            `${String(milliseconds).padStart(2, "0")}`;
+  }
+
+
+  /* RENK DEĞİŞTİR */
+
+  function renkDegistir(renk) {
+
+    const root = document.documentElement;
+
+    document.querySelectorAll(".color")
+            .forEach(buton => {
+              buton.classList.remove("active");
+            });
+
+    document
+            .querySelector("." + renk)
+            .classList.add("active");
+
+
+    if (renk === "red") {
+
+      root.style.setProperty("--main", "#ff7777");
+      root.style.setProperty("--glow", "#ff3535");
+      root.style.setProperty("--glow2", "#e34545");
+      root.style.setProperty("--dark-glow", "#b00000");
+      root.style.setProperty("--date", "#ffa6be");
+      root.style.setProperty("--bg-top", "#3a1818");
+      root.style.setProperty(
+              "--glow-alpha",
+              "rgb(229 0 0 / 0.19)"
+      );
+    }
+
+
+    if (renk === "pink") {
+
+      root.style.setProperty("--main", "#ff5c9a");
+      root.style.setProperty("--glow", "#ff2f7d");
+      root.style.setProperty("--glow2", "#e83e87");
+      root.style.setProperty("--dark-glow", "#a5004d");
+      root.style.setProperty("--date", "#ff9fc4");
+      root.style.setProperty("--bg-top", "#351525");
+      root.style.setProperty(
+              "--glow-alpha",
+              "rgb(255 50 130 / 0.20)"
+      );
+    }
+
+
+    if (renk === "purple") {
+
+      root.style.setProperty("--main", "#b86cff");
+      root.style.setProperty("--glow", "#9d3cff");
+      root.style.setProperty("--glow2", "#8b45d9");
+      root.style.setProperty("--dark-glow", "#4c008c");
+      root.style.setProperty("--date", "#d3a6ff");
+      root.style.setProperty("--bg-top", "#211533");
+      root.style.setProperty(
+              "--glow-alpha",
+              "rgb(150 50 255 / 0.20)"
+      );
+    }
+
+
+    if (renk === "blue") {
+
+      root.style.setProperty("--main", "#45c8ff");
+      root.style.setProperty("--glow", "#00aaff");
+      root.style.setProperty("--glow2", "#168bd1");
+      root.style.setProperty("--dark-glow", "#004c8c");
+      root.style.setProperty("--date", "#9ddfff");
+      root.style.setProperty("--bg-top", "#102535");
+      root.style.setProperty(
+              "--glow-alpha",
+              "rgb(0 150 255 / 0.20)"
+      );
+    }
+
+
+    if (renk === "white") {
+
+      root.style.setProperty("--main", "#ffffff");
+      root.style.setProperty("--glow", "#ffffff");
+      root.style.setProperty("--glow2", "#dddddd");
+      root.style.setProperty("--dark-glow", "#888888");
+      root.style.setProperty("--date", "#eeeeee");
+      root.style.setProperty("--bg-top", "#202020");
+      root.style.setProperty(
+              "--glow-alpha",
+              "rgb(255 255 255 / 0.16)"
+      );
+    }
+  }
+
+
+  /* BAŞLAT */
+
+  guncelle();
+
+  setInterval(guncelle, 1000);
+
+</script>
+
+</body>
+</html>
